@@ -35,7 +35,11 @@ resource "aws_iam_role_policy" "sftp_user_policy" {
         {
             "Sid": "AllowWriteToIn",
             "Effect": "Allow",
-            "Action":["s3:*"],
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject"
+            ],
             "Resource": [
                 "${aws_s3_bucket.bucket.arn}/${var.username}/*"
             ]
