@@ -1,5 +1,24 @@
-
-
+# locals {
+#   folders = [
+#     for user in var.sftp_users : [
+#       for bucket_name in item.bucket_names : {
+#         bucketname = bucket_name
+#         path       = "${item.customer_name}/${item.customer_number}/"
+#       }
+#     ]
+#   ]
+  
+# }
+resource "aws_s3_object" "folder_hung_1" {
+  bucket = "hung-smtp-bucket-1"
+  acl    = "private"
+  key    = "hung/"
+}
+resource "aws_s3_object" "folder_hung_2" {
+  bucket = "hung-smtp-bucket-2"
+  acl    = "private"
+  key    = "hung/"
+}
 resource "aws_iam_role" "sftp_user" {
   name               = "sftp-user-role"
   assume_role_policy = <<EOF
@@ -30,7 +49,7 @@ resource "aws_iam_role_policy" "sftp_user_policy" {
             "Sid": "AllowListHomeDirectory",
             "Effect": "Allow",
             "Action": "s3:ListBucket",
-            "Resource": "${aws_s3_bucket.bucket.arn}"
+            "Resource": ["${aws_s3_bucket.bucket.arn}","${aws_s3_bucket.bucket2.arn}"]
         },
         {
             "Sid": "AllowWriteToIn",
@@ -41,7 +60,7 @@ resource "aws_iam_role_policy" "sftp_user_policy" {
                 "s3:DeleteObject"
             ],
             "Resource": [
-                "${aws_s3_bucket.bucket.arn}/${var.username}/*"
+                "${aws_s3_bucket.bucket.arn}/${var.username}/*", "${aws_s3_bucket.bucket2.arn}/${var.username}/*"
             ]
         }
       ]
@@ -55,11 +74,18 @@ resource "aws_transfer_user" "this" {
   home_directory_type = "LOGICAL"
 
   home_directory_mappings {
-    entry  = "/${var.username}"
+    entry  = "/bucket1"
     target = "/${aws_s3_bucket.bucket.id}/${var.username}"
+  }
+  home_directory_mappings {
+    entry  = "/bucket2"
+    target = "/${aws_s3_bucket.bucket2.id}/${var.username}"
   }
 
   role = aws_iam_role.sftp_user.arn
+  tags = {
+    User = var.username
+  }
 }
 
 resource "aws_transfer_ssh_key" "this" {
